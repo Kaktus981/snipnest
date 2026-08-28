@@ -262,7 +262,10 @@ function App(): React.ReactElement {
 
   const loadData = useCallback(async () => {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      // A side panel opened directly is not an activeTab invocation. The tabs
+      // permission exposes URL/title metadata so we can identify only the
+      // active tab in the last-focused browser window before per-site consent.
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       setActiveTab(tab ?? null);
       const tabUrl = tab?.url && /^https?:/.test(tab.url) ? tab.url : null;
       const tabOrigin = tabUrl ? new URL(tabUrl).origin : null;
@@ -707,6 +710,9 @@ function App(): React.ReactElement {
             <div className="stat"><div className="stat-value">{stats.characters}</div><div className="stat-label">保存字符</div></div>
           </div>
           <p className="card-description">数据保存在当前浏览器的扩展存储中，不会主动发送到网络。</p>
+          <div className="notice" style={{ marginTop: 10 }}>
+            为支持直接打开侧边栏，文栈只查询当前活动标签页的网址和标题。未逐站授权前，不读取网页正文或输入内容。
+          </div>
         </section>
         <section className="card">
           <h2 className="card-title">草稿策略</h2>
