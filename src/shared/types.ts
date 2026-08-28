@@ -75,14 +75,26 @@ export interface Settings {
   minChars: number;
   maxVersions: number;
   draftGrouping: DraftGrouping;
+  autoSaveEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   retentionDays: 7,
   minChars: 1,
   maxVersions: 5,
-  draftGrouping: "site"
+  draftGrouping: "site",
+  autoSaveEnabled: true
 };
+
+export interface ImportSummary {
+  draftsAdded: number;
+  draftsUpdated: number;
+  draftsSkipped: number;
+  snippetsAdded: number;
+  snippetsUpdated: number;
+  snippetsSkipped: number;
+  settingsImported: boolean;
+}
 
 export interface DraftUpdatePayload {
   id: string;
@@ -133,5 +145,6 @@ export type RuntimeMessage =
   | { type: "INSERT_TEXT"; tabId: number; text: string; snippetId?: string }
   | { type: "GET_STATS" }
   | { type: "EXPORT_DATA" }
+  | { type: "IMPORT_DATA"; data: unknown }
   | { type: "CLEAR_ALL_DATA" }
   | { type: "CLEANUP_EXPIRED" };

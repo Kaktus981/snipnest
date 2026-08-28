@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { groupDrafts, isShortDraft, type DraftGroup } from "../shared/draft-organize";
 import { hostPermissionPattern, isLikelySensitiveUrl, normalizeSettings } from "../shared/logic";
@@ -8,6 +8,7 @@ import {
   type DraftGrouping,
   type ExportPayload,
   type FieldContext,
+  type ImportSummary,
   type Settings,
   type SiteGrant,
   type Snippet,
@@ -251,6 +252,9 @@ function App(): React.ReactElement {
     permitted: false
   });
   const [siteBusy, setSiteBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importNotice, setImportNotice] = useState("");
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -437,6 +441,43 @@ function App(): React.ReactElement {
     URL.revokeObjectURL(url);
   }
 
+  async function importJson(file: File): Promise<void> {
+    setImportBusy(true);
+    setImportNotice("");
+    setError("");
+    try {
+      if (file.size > 20 * 1024 * 1024) throw new Error("JSON备份不能超过20MB");
+      const data = JSON.parse(await file.text()) as unknown;
+      if (
+        typeof data !== "object" ||
+        data === null ||
+        !("format" in data) ||
+        data.format !== "draftvault-export" ||
+        !("drafts" in data) ||
+        !Array.isArray(data.drafts) ||
+        !("snippets" in data) ||
+        !Array.isArray(data.snippets)
+      ) throw new Error("这不是文栈支持的JSON备份文件");
+      if (!confirm(
+        `准备导入 ${data.drafts.length} 份草稿和 ${data.snippets.length} 个片段。\n\n` +
+        "同一条数据只会在备份版本更新时覆盖，现有的其他数据不会删除。是否继续？"
+      )) return;
+      const response = await message<{ summary: ImportSummary }>({ type: "IMPORT_DATA", data });
+      const summary = response.summary;
+      const changed = summary.draftsAdded + summary.draftsUpdated + summary.snippetsAdded + summary.snippetsUpdated;
+      setImportNotice(
+        changed
+          ? `导入完成：新增${summary.draftsAdded}份草稿、更新${summary.draftsUpdated}份；新增${summary.snippetsAdded}个片段、更新${summary.snippetsUpdated}个。`
+          : "导入完成：备份中的内容没有比现有数据更新，未覆盖任何记录。"
+      );
+      await loadData();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "导入失败");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   async function clearData(): Promise<void> {
     if (!confirm("确定清除全部草稿和永久片段吗？此操作无法撤销。")) return;
     await message({ type: "CLEAR_ALL_DATA" });
@@ -541,7 +582,11 @@ function App(): React.ReactElement {
             </div>
           ) : currentProtected ? (
             <div style={{ marginTop: 12 }}>
-              <div className="notice">当前网站已授权，点击网页中的长文本框即可开始保护。</div>
+              <div className="notice">
+                {settings.autoSaveEnabled
+                  ? "当前网站已授权，点击网页中的长文本框即可开始自动保存和保护。"
+                  : "当前网站已授权。自动保存已关闭，但大段文字的误删保护仍然启用。"}
+              </div>
               <button className="button danger block" style={{ marginTop: 10 }} disabled={siteBusy} onClick={() => void disableCurrentSite()}>
                 {siteBusy ? "正在停止…" : "停止保护此网站"}
               </button>
@@ -585,7 +630,7 @@ function App(): React.ReactElement {
         </section>
         <section className="card">
           <div className="row-between"><h2 className="card-title">本页草稿</h2><span className="meta">{currentDrafts.length}份</span></div>
-          {currentDrafts.length ? <div className="list" style={{ marginTop: 10 }}>{currentDrafts.slice(0, 3).map((draft) => <DraftCard key={draft.id} draft={draft} activeTabId={activeTab?.id} canRestore={activeField?.fingerprint === draft.field.fingerprint} onChanged={() => void loadData()} onPromote={() => setPromoting(draft)} />)}</div> : <div className="notice" style={{ marginTop: 10 }}>输入达到{settings.minChars}字并停顿后，草稿会出现在这里。</div>}
+          {currentDrafts.length ? <div className="list" style={{ marginTop: 10 }}>{currentDrafts.slice(0, 3).map((draft) => <DraftCard key={draft.id} draft={draft} activeTabId={activeTab?.id} canRestore={activeField?.fingerprint === draft.field.fingerprint} onChanged={() => void loadData()} onPromote={() => setPromoting(draft)} />)}</div> : <div className="notice" style={{ marginTop: 10 }}>{settings.autoSaveEnabled ? `输入达到${settings.minChars}字并停顿后，草稿会出现在这里。` : "自动保存已关闭；发生疑似误删时，恢复草稿会出现在这里。"}</div>}
         </section>
       </div>
     );
@@ -619,7 +664,7 @@ function App(): React.ReactElement {
               {shortDraftsOpen ? <div className="group-stack nested">{shortGroups.map((group) => renderGroup(group, "short"))}</div> : null}
             </section>
           ) : null}
-          {!filteredDrafts.length ? <div className="card"><Empty icon="⌛" title="还没有草稿">启用网站保护并输入至少{settings.minChars}个字符后，草稿会自动保存在这里。</Empty></div> : null}
+          {!filteredDrafts.length ? <div className="card"><Empty icon="⌛" title="还没有草稿">{settings.autoSaveEnabled ? `启用网站保护并输入至少${settings.minChars}个字符后，草稿会自动保存在这里。` : "自动保存已关闭；大段文字被意外清空时，文栈仍会在这里保留恢复草稿。"}</Empty></div> : null}
         </div>
       </div>
     );
@@ -665,6 +710,24 @@ function App(): React.ReactElement {
         </section>
         <section className="card">
           <h2 className="card-title">草稿策略</h2>
+          <div className="row-between" style={{ marginTop: 12 }}>
+            <div className="grow">
+              <div style={{ fontSize: 12, fontWeight: 700 }}>自动保存普通输入</div>
+              <div className="meta" style={{ marginTop: 3 }}>
+                关闭后停止持续保存和历史检查点，但大段文字的误删保护仍然启用。
+              </div>
+            </div>
+            <button
+              className={`toggle ${settings.autoSaveEnabled ? "on" : ""}`}
+              role="switch"
+              aria-checked={settings.autoSaveEnabled}
+              aria-label="自动保存普通输入"
+              title={settings.autoSaveEnabled ? "自动保存已开启" : "自动保存已关闭，误删保护仍启用"}
+              onClick={() => void updateSettings({ ...settings, autoSaveEnabled: !settings.autoSaveEnabled })}
+            >
+              <span />
+            </button>
+          </div>
           <label className="field-label">默认保留时间</label>
           <select className="field" value={settings.retentionDays} onChange={(event) => void updateSettings({ ...settings, retentionDays: Number(event.target.value) as 1 | 7 | 30 })}>
             <option value={1}>1天</option><option value={7}>7天</option><option value={30}>30天</option>
@@ -690,11 +753,26 @@ function App(): React.ReactElement {
         </section>
         <section className="card">
           <h2 className="card-title">数据控制</h2>
-          <p className="card-description">导出文件包含草稿和永久片段，请将其保存在可信位置。</p>
+          <p className="card-description">可以导出本地备份，也可以导入旧版本文栈生成的JSON。文件只在当前浏览器中读取，不会上传。</p>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void importJson(file);
+            }}
+          />
           <div className="button-row">
+            <button className="button primary" disabled={importBusy} onClick={() => importInputRef.current?.click()}>
+              {importBusy ? "正在导入…" : "导入 JSON"}
+            </button>
             <button className="button secondary" onClick={() => void exportJson()}>导出 JSON</button>
-            <button className="button danger" onClick={() => void clearData()}>清除全部</button>
           </div>
+          <button className="button danger block" style={{ marginTop: 9 }} onClick={() => void clearData()}>清除全部数据</button>
+          {importNotice ? <div className="notice" style={{ marginTop: 10 }}>{importNotice}</div> : null}
         </section>
       </div>
     );

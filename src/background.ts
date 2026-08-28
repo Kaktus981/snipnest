@@ -16,6 +16,7 @@ import {
   extendDrafts,
   getDraft,
   getStats,
+  importData,
   incrementSnippetUse,
   listDrafts,
   listSnippets,
@@ -100,22 +101,24 @@ async function tabsForOrigin(origin: string): Promise<chrome.tabs.Tab[]> {
   });
 }
 
-async function siteStatus(origin: string): Promise<{ enabled: boolean; permitted: boolean }> {
+async function siteStatus(origin: string): Promise<{ enabled: boolean; permitted: boolean; autoSaveEnabled: boolean }> {
   const normalizedOrigin = new URL(origin).origin;
-  const [stored, permitted, registered, activations] = await Promise.all([
+  const [stored, permitted, registered, activations, settings] = await Promise.all([
     chrome.storage.local.get("siteGrants"),
     chrome.permissions.contains({ origins: [originPattern(normalizedOrigin)] }),
     chrome.scripting.getRegisteredContentScripts({ ids: [scriptId(normalizedOrigin)] }),
-    getPendingActivations()
+    getPendingActivations(),
+    getSettings()
   ]);
   const grants = (stored.siteGrants ?? {}) as Record<string, SiteGrant>;
   return {
     enabled: Boolean(grants[normalizedOrigin]?.enabled && permitted && registered.length),
     permitted,
+    autoSaveEnabled: settings.autoSaveEnabled,
     pending: Boolean(
       activations[normalizedOrigin] && isPendingActivationValid(activations[normalizedOrigin])
     )
-  } as { enabled: boolean; permitted: boolean; pending: boolean };
+  } as { enabled: boolean; permitted: boolean; autoSaveEnabled: boolean; pending: boolean };
 }
 
 function scriptId(origin: string): string {
@@ -338,6 +341,9 @@ async function handleMessage(message: RuntimeMessage, sender: chrome.runtime.Mes
       });
       if (!permitted) throw new Error("网站授权已失效");
       const settings = await getSettings();
+      if (!settings.autoSaveEnabled) {
+        return { ok: true, skipped: true, reason: "auto-save-disabled" };
+      }
       const text = message.payload.text.trim();
       if (!text) return { ok: true, skipped: true, reason: "empty" };
       if (text.length < settings.minChars) {
@@ -442,6 +448,12 @@ async function handleMessage(message: RuntimeMessage, sender: chrome.runtime.Mes
       return { ok: true, stats: await getStats() };
     case "EXPORT_DATA":
       return { ok: true, data: await exportData(await getSettings()) };
+    case "IMPORT_DATA": {
+      const result = await importData(message.data, await getSettings());
+      await chrome.storage.local.set({ settings: result.settings });
+      void chrome.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => undefined);
+      return { ok: true, summary: result.summary };
+    }
     case "CLEAR_ALL_DATA":
       await clearAllData();
       return { ok: true };

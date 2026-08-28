@@ -73,6 +73,7 @@ void (async () => {
   ];
   const sensitiveUrlTerms = ["checkout", "payment", "/pay/", "bank", "wallet", "收银台", "支付"];
   let enabled = !sensitiveUrlTerms.some((term) => location.href.toLowerCase().includes(term));
+  let autoSaveEnabled = status.autoSaveEnabled !== false;
   let activeField: Editable | null = null;
   let activeContext: FieldContext | null = null;
   let currentAssist: { draft?: DraftAssist; suggestions: SuggestionAssist[] } = { suggestions: [] };
@@ -213,6 +214,10 @@ void (async () => {
 
   async function save(element: Editable, checkpoint: boolean): Promise<void> {
     if (!enabled || isSensitive(element)) return;
+    if (!autoSaveEnabled) {
+      setSaveStatus("误删保护中", "warning");
+      return;
+    }
     const text = readValue(element).trim();
     if (!text) {
       setSaveStatus("空白未覆盖", "muted");
@@ -226,7 +231,10 @@ void (async () => {
         payload: { id: `draft_${field.fingerprint}`, field, text, checkpoint }
       });
       if (!response?.ok) throw new Error(response?.error ?? "保存失败");
-      if (response.reason === "below-minimum") {
+      if (response.reason === "auto-save-disabled") {
+        autoSaveEnabled = false;
+        setSaveStatus("误删保护中", "warning");
+      } else if (response.reason === "below-minimum") {
         setSaveStatus(`需${response.minimum}字`, "muted");
       } else if (response.unchanged) {
         setSaveStatus("内容未变化", "muted");
@@ -240,6 +248,7 @@ void (async () => {
   }
 
   function scheduleSave(element: Editable): void {
+    if (!autoSaveEnabled) return;
     const item = state.get(element) ?? { lastValue: readValue(element) };
     if (item.debounce) window.clearTimeout(item.debounce);
     item.debounce = window.setTimeout(() => void save(element, false), 800);
@@ -251,6 +260,15 @@ void (async () => {
       }, 30_000);
     }
     state.set(element, item);
+  }
+
+  function clearScheduledSaves(): void {
+    state.forEach((item) => {
+      if (item.debounce) window.clearTimeout(item.debounce);
+      if (item.checkpoint) window.clearTimeout(item.checkpoint);
+      item.debounce = undefined;
+      item.checkpoint = undefined;
+    });
   }
 
   const host = document.createElement("div");
@@ -415,6 +433,7 @@ void (async () => {
     item.lastValue = readValue(element);
     state.set(element, item);
     currentAssist = { suggestions: [] };
+    setSaveStatus(autoSaveEnabled ? "保护中" : "误删保护中", autoSaveEnabled ? "saved" : "warning");
     renderAssist();
     wrap.style.display = "block";
     panel.classList.remove("open");
@@ -463,18 +482,27 @@ void (async () => {
           }
         }).catch(() => setSaveStatus("保护失败", "error"));
       }
-      scheduleSave(element);
+      if (autoSaveEnabled) scheduleSave(element);
+      else if (!destructiveEdit(previousText, currentText)) setSaveStatus("误删保护中", "warning");
     }
   });
   document.addEventListener("focusout", (event) => {
-    if (isEditable(event.target) && !isSensitive(event.target)) void save(event.target, true);
+    if (autoSaveEnabled && isEditable(event.target) && !isSensitive(event.target)) void save(event.target, true);
     window.setTimeout(() => {
       const focused = document.activeElement;
       if (!isEditable(focused) && !panel.classList.contains("open")) wrap.style.display = "none";
     }, 120);
   });
   window.addEventListener("pagehide", () => {
-    state.forEach((_value, element) => void save(element, true));
+    if (autoSaveEnabled) state.forEach((_value, element) => void save(element, true));
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes.settings?.newValue) return;
+    const next = changes.settings.newValue as { autoSaveEnabled?: unknown };
+    autoSaveEnabled = next.autoSaveEnabled !== false;
+    if (!autoSaveEnabled) clearScheduledSaves();
+    setSaveStatus(autoSaveEnabled ? "保护中" : "误删保护中", autoSaveEnabled ? "saved" : "warning");
   });
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

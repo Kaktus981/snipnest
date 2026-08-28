@@ -151,7 +151,9 @@ export function normalizeSettings(input?: Partial<Settings>): Settings {
     ...DEFAULT_SETTINGS,
     ...input,
     minChars: legacy ? 1 : (input?.minChars ?? DEFAULT_SETTINGS.minChars),
-    draftGrouping: input?.draftGrouping ?? DEFAULT_SETTINGS.draftGrouping
+    draftGrouping: input?.draftGrouping ?? DEFAULT_SETTINGS.draftGrouping,
+    autoSaveEnabled:
+      typeof input?.autoSaveEnabled === "boolean" ? input.autoSaveEnabled : DEFAULT_SETTINGS.autoSaveEnabled
   };
 }
 

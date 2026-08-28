@@ -3,10 +3,12 @@ import type {
   DestructiveEditPayload,
   DraftUpdatePayload,
   ExportPayload,
+  FieldContext,
+  ImportSummary,
   Settings,
   Snippet
 } from "./types";
-import { trimVersions } from "./logic";
+import { normalizeSettings, trimVersions } from "./logic";
 
 // Legacy storage name is intentionally retained so upgrades keep every user's local drafts.
 const DB_NAME = "draftvault";
@@ -338,6 +340,218 @@ export async function exportData(settings: Settings): Promise<ExportPayload> {
     snippets,
     settings
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function finiteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function importedField(value: unknown): FieldContext | null {
+  if (!isRecord(value)) return null;
+  const stringKeys = [
+    "origin",
+    "pathname",
+    "pageUrl",
+    "pageTitle",
+    "label",
+    "ariaLabel",
+    "placeholder",
+    "name",
+    "inputType",
+    "domHint",
+    "fingerprint"
+  ] as const;
+  if (stringKeys.some((key) => typeof value[key] !== "string")) return null;
+  try {
+    const origin = new URL(value.origin as string);
+    if (!/^https?:$/.test(origin.protocol) || origin.origin !== value.origin) return null;
+  } catch {
+    return null;
+  }
+  if (!(value.maxLength === null || finiteNumber(value.maxLength))) return null;
+  return value as unknown as FieldContext;
+}
+
+function importedDraft(value: unknown): Draft | null {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.latestText !== "string") return null;
+  const field = importedField(value.field);
+  if (!field || typeof value.origin !== "string" || value.origin !== field.origin) return null;
+  if (
+    typeof value.pathname !== "string" ||
+    typeof value.pageUrl !== "string" ||
+    typeof value.pageTitle !== "string" ||
+    !Array.isArray(value.versions) ||
+    !["temporary", "extended"].includes(String(value.status)) ||
+    !finiteNumber(value.createdAt) ||
+    !finiteNumber(value.updatedAt) ||
+    !finiteNumber(value.expiresAt)
+  ) return null;
+  const versions = value.versions.map((version) => {
+    if (
+      !isRecord(version) ||
+      typeof version.id !== "string" ||
+      typeof version.text !== "string" ||
+      !finiteNumber(version.createdAt)
+    ) return null;
+    return {
+      id: version.id,
+      text: version.text,
+      charCount: version.text.length,
+      createdAt: version.createdAt
+    };
+  });
+  if (versions.some((version) => !version)) return null;
+  let recovery: Draft["recovery"];
+  if (value.recovery !== undefined) {
+    if (
+      !isRecord(value.recovery) ||
+      typeof value.recovery.text !== "string" ||
+      !finiteNumber(value.recovery.createdAt) ||
+      !finiteNumber(value.recovery.beforeCharCount) ||
+      !finiteNumber(value.recovery.afterCharCount)
+    ) return null;
+    recovery = {
+      text: value.recovery.text,
+      createdAt: value.recovery.createdAt,
+      beforeCharCount: value.recovery.beforeCharCount,
+      afterCharCount: value.recovery.afterCharCount
+    };
+  }
+  return {
+    id: value.id,
+    origin: value.origin,
+    pathname: value.pathname,
+    pageUrl: value.pageUrl,
+    pageTitle: value.pageTitle,
+    field,
+    latestText: value.latestText,
+    versions: versions as Draft["versions"],
+    recovery,
+    status: value.status as Draft["status"],
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+    expiresAt: value.expiresAt
+  };
+}
+
+function importedSnippet(value: unknown): Snippet | null {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== "string" ||
+    typeof value.title !== "string" ||
+    typeof value.content !== "string" ||
+    typeof value.category !== "string" ||
+    !Array.isArray(value.tags) ||
+    value.tags.some((tag) => typeof tag !== "string") ||
+    !finiteNumber(value.useCount) ||
+    !finiteNumber(value.createdAt) ||
+    !finiteNumber(value.updatedAt)
+  ) return null;
+  if (value.sourceDraftId !== undefined && typeof value.sourceDraftId !== "string") return null;
+  return {
+    id: value.id,
+    title: value.title,
+    content: value.content,
+    category: value.category,
+    tags: [...new Set(value.tags as string[])],
+    sourceDraftId: value.sourceDraftId as string | undefined,
+    useCount: value.useCount,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt
+  };
+}
+
+function importedSettings(value: unknown, current: Settings): { settings: Settings; imported: boolean } {
+  if (!isRecord(value)) return { settings: current, imported: false };
+  const retentionDays = [1, 7, 30].includes(Number(value.retentionDays))
+    ? Number(value.retentionDays) as 1 | 7 | 30
+    : current.retentionDays;
+  const minChars = finiteNumber(value.minChars) && value.minChars >= 1 ? value.minChars : current.minChars;
+  const maxVersions = finiteNumber(value.maxVersions) && value.maxVersions >= 1
+    ? Math.min(20, Math.floor(value.maxVersions))
+    : current.maxVersions;
+  const draftGrouping = ["site", "date", "field"].includes(String(value.draftGrouping))
+    ? value.draftGrouping as Settings["draftGrouping"]
+    : current.draftGrouping;
+  return {
+    settings: normalizeSettings({
+      ...current,
+      retentionDays,
+      minChars,
+      maxVersions,
+      draftGrouping,
+      autoSaveEnabled:
+        typeof value.autoSaveEnabled === "boolean" ? value.autoSaveEnabled : current.autoSaveEnabled
+    }),
+    imported: true
+  };
+}
+
+export async function importData(
+  input: unknown,
+  currentSettings: Settings,
+  now = Date.now()
+): Promise<{ summary: ImportSummary; settings: Settings }> {
+  if (
+    !isRecord(input) ||
+    input.format !== "draftvault-export" ||
+    input.version !== 1 ||
+    !Array.isArray(input.drafts) ||
+    !Array.isArray(input.snippets)
+  ) {
+    throw new Error("这不是文栈支持的JSON备份文件");
+  }
+  const drafts = input.drafts.map(importedDraft);
+  const snippets = input.snippets.map(importedSnippet);
+  if (drafts.some((draft) => !draft) || snippets.some((snippet) => !snippet)) {
+    throw new Error("备份文件包含损坏或无法识别的数据");
+  }
+  const imported = importedSettings(input.settings, currentSettings);
+  const summary: ImportSummary = {
+    draftsAdded: 0,
+    draftsUpdated: 0,
+    draftsSkipped: 0,
+    snippetsAdded: 0,
+    snippetsUpdated: 0,
+    snippetsSkipped: 0,
+    settingsImported: imported.imported
+  };
+  const database = await openDatabase();
+  const transaction = database.transaction([DRAFTS, SNIPPETS], "readwrite");
+  const draftStore = transaction.objectStore(DRAFTS);
+  const snippetStore = transaction.objectStore(SNIPPETS);
+  for (const importedValue of drafts as Draft[]) {
+    const existing = (await requestResult(draftStore.get(importedValue.id))) as Draft | undefined;
+    if (existing && existing.updatedAt >= importedValue.updatedAt) {
+      summary.draftsSkipped += 1;
+      continue;
+    }
+    const retentionMs = (importedValue.status === "extended" ? 30 : imported.settings.retentionDays) * 24 * 60 * 60 * 1000;
+    draftStore.put({
+      ...importedValue,
+      versions: trimVersions(importedValue.versions, imported.settings.maxVersions),
+      expiresAt: Math.max(importedValue.expiresAt, now + retentionMs)
+    });
+    if (existing) summary.draftsUpdated += 1;
+    else summary.draftsAdded += 1;
+  }
+  for (const importedValue of snippets as Snippet[]) {
+    const existing = (await requestResult(snippetStore.get(importedValue.id))) as Snippet | undefined;
+    if (existing && existing.updatedAt >= importedValue.updatedAt) {
+      summary.snippetsSkipped += 1;
+      continue;
+    }
+    snippetStore.put(importedValue);
+    if (existing) summary.snippetsUpdated += 1;
+    else summary.snippetsAdded += 1;
+  }
+  await transactionDone(transaction);
+  database.close();
+  return { summary, settings: imported.settings };
 }
 
 export async function getStats(): Promise<{ drafts: number; snippets: number; characters: number }> {

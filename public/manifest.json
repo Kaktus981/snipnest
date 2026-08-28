@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "文栈 SnipNest",
   "description": "本地保护网页长文本，并将有价值的草稿沉淀为可跨网站复用的个人片段。",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "minimum_edge_version": "114",
   "permissions": ["storage", "sidePanel", "scripting", "alarms", "activeTab"],
   "content_security_policy": {
