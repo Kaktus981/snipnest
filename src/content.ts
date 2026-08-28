@@ -277,35 +277,43 @@ void (async () => {
   const style = document.createElement("style");
   style.textContent = `
     :host { all: initial; }
-    .dv-wrap { position: fixed; z-index: 2147483646; display: none; font: 13px/1.5 "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI Variable", system-ui, sans-serif; color: #1c2434; letter-spacing: .005em; }
-    .dv-pill { width: 30px; height: 30px; border: 1px solid rgba(255,255,255,.45); border-radius: 11px; color: white; cursor: pointer; background: linear-gradient(140deg,#858cff 0%,#5b5bd6 58%,#4849af 100%); box-shadow: 0 9px 24px rgba(74,75,182,.3), inset 0 1px rgba(255,255,255,.28); font: 700 15px/1 "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif; }
-    .dv-pill:hover { transform: translateY(-1px); box-shadow: 0 11px 27px rgba(74,75,182,.36), inset 0 1px rgba(255,255,255,.28); }
-    .dv-panel { width: 292px; margin-top: 8px; padding: 13px; border: 1px solid rgba(104,116,170,.22); border-radius: 17px; background: rgba(255,255,255,.98); box-shadow: 0 18px 55px rgba(26,34,74,.24); backdrop-filter: blur(18px); display: none; }
+    .dv-wrap { position: fixed; z-index: 2147483646; display: none; font: 13px/1.5 "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI Variable", system-ui, sans-serif; color: #2d2926; letter-spacing: .005em; }
+    .dv-pill { width: 30px; height: 30px; border: 1px solid rgba(255,255,255,.45); border-radius: 11px; color: white; cursor: pointer; background: linear-gradient(140deg,#d98561 0%,#b45a3c 58%,#88402e 100%); box-shadow: 0 9px 24px rgba(137,64,46,.3), inset 0 1px rgba(255,255,255,.28); font: 700 15px/1 "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif; }
+    .dv-pill:hover { transform: translateY(-1px); box-shadow: 0 11px 27px rgba(137,64,46,.36), inset 0 1px rgba(255,255,255,.28); }
+    .dv-panel { width: 292px; margin-top: 8px; padding: 13px; border: 1px solid rgba(232,222,210,.9); border-radius: 17px; background: rgba(255,253,248,.98); box-shadow: 0 18px 55px rgba(71,46,32,.24); backdrop-filter: blur(18px); display: none; }
     .dv-panel.open { display: block; }
     .dv-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
     .dv-brand { font: 680 14px/1.2 "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif; letter-spacing: -.02em; }
-    .dv-safe { font-size: 11px; color: #167c68; background: #e8f7f1; padding: 4px 8px; border: 1px solid #c8eadf; border-radius: 99px; }
-    .dv-safe.saving { color: #5354c9; background: #eeefff; border-color: #dedfff; }
-    .dv-safe.muted { color: #687388; background: #f0f2f6; border-color: #e1e5ec; }
-    .dv-safe.error { color: #bc4655; background: #fff0f2; border-color: #f1cbd1; }
-    .dv-safe.warning { color: #9a6414; background: #fff5df; border-color: #f2dfb1; }
-    .dv-section { border-top: 1px solid #edf0f6; padding-top: 10px; margin-top: 10px; }
-    .dv-label { font-size: 10px; color: #77809a; margin-bottom: 6px; font-weight: 680; letter-spacing: .06em; }
-    .dv-item { display: block; width: 100%; text-align: left; border: 1px solid #e6e8f0; background: #f6f7fb; border-radius: 11px; padding: 9px 10px; margin-top: 6px; cursor: pointer; color: #27304b; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
-    .dv-item:hover { background: #eff0ff; border-color: #dadcff; transform: translateY(-1px); }
-    .dv-item.warning { background: #fff5df; color: #7a4a04; border-color: #f1d595; }
+    .dv-safe { font-size: 11px; color: #2e7460; background: #e7f2ed; padding: 4px 8px; border: 1px solid #c8e1d6; border-radius: 99px; }
+    .dv-safe.saving { color: #88402e; background: #f7e9e3; border-color: #ead4c9; }
+    .dv-safe.muted { color: #756b63; background: #f0ece5; border-color: #e1d6ca; }
+    .dv-safe.error { color: #ad4b4b; background: #faeaea; border-color: #edcaca; }
+    .dv-safe.warning { color: #a66d22; background: #fbf0d9; border-color: #f1d595; }
+    .dv-section { border-top: 1px solid #e8ded2; padding-top: 10px; margin-top: 10px; }
+    .dv-label { font-size: 10px; color: #756b63; margin-bottom: 6px; font-weight: 680; letter-spacing: .06em; }
+    .dv-item { display: block; width: 100%; text-align: left; border: 1px solid #e8ded2; background: #f4f0e8; border-radius: 11px; padding: 9px 10px; margin-top: 6px; cursor: pointer; color: #433a34; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+    .dv-item:hover { background: #fff9f3; border-color: #d7c2b5; transform: translateY(-1px); }
+    .dv-item.warning { background: #fbf0d9; color: #805612; border-color: #f1d595; }
     .dv-actions { display: flex; gap: 6px; margin-top: 7px; }
     .dv-action { flex: 1; border: 0; border-radius: 9px; padding: 8px; cursor: pointer; font: inherit; font-size: 11px; transition: transform .16s ease, filter .16s ease; }
     .dv-action:hover { transform: translateY(-1px); filter: brightness(.98); }
-    .dv-action.restore { color: white; background: linear-gradient(135deg,#6c70e8,#5354c9); box-shadow: 0 6px 14px rgba(82,83,200,.2); }
-    .dv-action.dismiss { color: #697187; background: #eef0f5; }
+    .dv-action.restore { color: white; background: linear-gradient(135deg,#c56d4d,#a94f35); box-shadow: 0 6px 14px rgba(169,79,53,.2); }
+    .dv-action.dismiss { color: #756b63; background: #f0ece5; }
     .dv-title { display: block; font-weight: 680; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .dv-preview { display: block; margin-top: 3px; color: #7a8298; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .dv-empty { color: #8b93a7; font-size: 12px; padding: 5px 0; }
+    .dv-preview { display: block; margin-top: 3px; color: #756b63; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dv-empty { color: #9a8f84; font-size: 12px; padding: 5px 0; }
     @media (prefers-color-scheme: dark) {
-      .dv-panel { background: rgba(32,37,54,.98); border-color: #394057; color: #eef0f8; }
-      .dv-brand { color: #f3f5ff; } .dv-section { border-color: #353b50; }
-      .dv-item { background: #30364a; color: #f0f2fa; border-color: #414963; } .dv-item:hover { background: #3a4260; border-color: #505a7a; }
+      .dv-panel { background: rgba(41,39,36,.98); border-color: #684238; color: #f4eee6; }
+      .dv-brand { color: #f4eee6; } .dv-section { border-color: #49413a; }
+      .dv-item { background: #322d29; color: #f4eee6; border-color: #49413a; } .dv-item:hover { background: #413832; border-color: #66594e; }
+      .dv-safe.saving { color: #e4a88f; background: #4a3029; border-color: #684238; }
+      .dv-safe.muted { color: #b8a99a; background: #322d29; border-color: #49413a; }
+      .dv-safe.error { color: #e89a9a; background: #492c2e; border-color: #713d3f; }
+      .dv-safe.warning { color: #e6b667; background: #4b3922; border-color: #72572d; }
+      .dv-item.warning { background: #4b3922; color: #f0c77d; border-color: #72572d; }
+      .dv-action.dismiss { color: #b8a99a; background: #322d29; }
+      .dv-preview { color: #b8a99a; }
+      .dv-empty { color: #9d9186; }
     }
   `;
   const wrap = document.createElement("div");

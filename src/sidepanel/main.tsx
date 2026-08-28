@@ -53,6 +53,31 @@ function Empty({ icon, title, children }: React.PropsWithChildren<{ icon: string
   );
 }
 
+function PageHeading({
+  eyebrow,
+  title,
+  description,
+  count,
+  action
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  count?: number;
+  action?: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <div className="page-heading">
+      <div className="grow">
+        <div className="eyebrow">{eyebrow}</div>
+        <h2 className="page-title">{title}</h2>
+        <p className="page-description">{description}</p>
+      </div>
+      {action ?? (typeof count === "number" ? <span className="count-badge">{count}</span> : null)}
+    </div>
+  );
+}
+
 function PromoteModal({ draft, onClose, onSaved }: { draft: Draft; onClose: () => void; onSaved: () => void }): React.ReactElement {
   const [title, setTitle] = useState(fieldName(draft.field));
   const [category, setCategory] = useState("通用");
@@ -76,7 +101,10 @@ function PromoteModal({ draft, onClose, onSaved }: { draft: Draft; onClose: () =
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form className="modal" onMouseDown={(event) => event.stopPropagation()} onSubmit={(event) => void submit(event)}>
-        <h2 className="card-title">升级为永久片段</h2>
+        <div className="modal-head">
+          <div className="grow"><div className="eyebrow">永久片段</div><h2 className="modal-title">升级草稿</h2></div>
+          <button type="button" className="icon-button" aria-label="关闭" onClick={onClose}>×</button>
+        </div>
         <p className="card-description">升级后草稿不再自动过期，并可在其他网站获得本地推荐。</p>
         <label className="field-label">片段名称</label>
         <input className="field" value={title} onChange={(event) => setTitle(event.target.value)} autoFocus />
@@ -121,7 +149,10 @@ function SnippetModal({ snippet, onClose, onSaved }: { snippet?: Snippet; onClos
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form className="modal" onMouseDown={(event) => event.stopPropagation()} onSubmit={(event) => void submit(event)}>
-        <h2 className="card-title">{snippet ? "编辑片段" : "新建片段"}</h2>
+        <div className="modal-head">
+          <div className="grow"><div className="eyebrow">片段库</div><h2 className="modal-title">{snippet ? "编辑片段" : "新建片段"}</h2></div>
+          <button type="button" className="icon-button" aria-label="关闭" onClick={onClose}>×</button>
+        </div>
         <label className="field-label">片段名称</label>
         <input className="field" value={title} onChange={(event) => setTitle(event.target.value)} autoFocus />
         <label className="field-label">正文</label>
@@ -187,7 +218,7 @@ function DraftCard({
   }
 
   return (
-    <article className="list-card">
+    <article className={`list-card draft-card ${draft.recovery ? "has-recovery" : ""}`}>
       <div className="row-between">
         {onSelect ? <input className="select-box" type="checkbox" aria-label={`选择${fieldName(draft.field)}`} checked={selected} onChange={(event) => onSelect(event.target.checked)} /> : null}
         <div className="grow">
@@ -223,11 +254,16 @@ function DraftCard({
           ))}
         </div>
       ) : null}
-      <div className="list-actions">
-        <button className="button primary small" disabled={!activeTabId} onClick={() => void insert()}>插入当前字段</button>
-        <button className="button secondary small" onClick={onPromote}>升级片段</button>
-        {draft.status === "temporary" ? <button className="button ghost small" onClick={() => void extend()}>延长30天</button> : null}
-        <button className="button danger small" onClick={() => void remove()}>删除</button>
+      <div className="list-actions action-bar">
+        <button className="button primary small action-primary" disabled={!activeTabId} onClick={() => void insert()}>插入当前字段</button>
+        <details className="more-actions">
+          <summary className="button ghost small">更多</summary>
+          <div className="action-menu">
+            <button className="menu-action" onClick={onPromote}>升级为永久片段</button>
+            {draft.status === "temporary" ? <button className="menu-action" onClick={() => void extend()}>延长保留30天</button> : null}
+            <button className="menu-action danger-text" onClick={() => void remove()}>删除草稿</button>
+          </div>
+        </details>
       </div>
     </article>
   );
@@ -649,6 +685,12 @@ function App(): React.ReactElement {
   function DraftsPage(): React.ReactElement {
     return (
       <div className="content">
+        <PageHeading
+          eyebrow="草稿管理"
+          title="找回和整理草稿"
+          description="输入会在本地留下可恢复的版本；重要内容可以升级为永久片段。"
+          count={filteredDrafts.length}
+        />
         <div className="draft-toolbar">
           <input className="field" placeholder="搜索字段、网页或草稿内容" value={search} onChange={(event) => { setSearch(event.target.value); setSelectedDraftIds(new Set()); }} />
           <select className="field compact" aria-label="草稿分组方式" value={settings.draftGrouping} onChange={(event) => { setSelectedDraftIds(new Set()); void updateSettings({ ...settings, draftGrouping: event.target.value as DraftGrouping }); }}>
@@ -683,7 +725,13 @@ function App(): React.ReactElement {
   function SnippetsPage(): React.ReactElement {
     return (
       <div className="content">
-        <div className="row">
+        <PageHeading
+          eyebrow="片段库"
+          title="写过一次，不再重复"
+          description="把常用内容整理成片段，在已授权的网站中按需插入。"
+          count={filteredSnippets.length}
+        />
+        <div className="row search-row">
           <input className="field grow" placeholder="搜索片段、分类或标签" value={search} onChange={(event) => setSearch(event.target.value)} />
           <button className="button primary" onClick={() => setEditingSnippet("new")}>新建</button>
         </div>
@@ -693,10 +741,15 @@ function App(): React.ReactElement {
               <div className="row-between"><div className="grow"><h3 className="list-title truncate">{snippet.title}</h3><div className="meta">{snippet.category} · 使用{snippet.useCount}次</div></div><span className="chip">永久</span></div>
               <div className="preview">{snippet.content}</div>
               <div className="chip-list" style={{ marginTop: 8 }}>{snippet.tags.map((tag) => <span className="chip" key={tag}>{tag}</span>)}</div>
-              <div className="list-actions">
-                <button className="button primary small" disabled={!activeField} onClick={() => void insertText(snippet.content, snippet.id)}>插入当前字段</button>
-                <button className="button ghost small" onClick={() => setEditingSnippet(snippet)}>编辑</button>
-                <button className="button danger small" onClick={() => void (async () => { if (confirm("确定删除这个永久片段吗？")) { await message({ type: "DELETE_SNIPPET", id: snippet.id }); await loadData(); } })()}>删除</button>
+              <div className="list-actions action-bar">
+                <button className="button primary small action-primary" disabled={!activeField} onClick={() => void insertText(snippet.content, snippet.id)}>插入当前字段</button>
+                <details className="more-actions">
+                  <summary className="button ghost small">更多</summary>
+                  <div className="action-menu">
+                    <button className="menu-action" onClick={() => setEditingSnippet(snippet)}>编辑片段</button>
+                    <button className="menu-action danger-text" onClick={() => void (async () => { if (confirm("确定删除这个永久片段吗？")) { await message({ type: "DELETE_SNIPPET", id: snippet.id }); await loadData(); } })()}>删除片段</button>
+                  </div>
+                </details>
               </div>
             </article>
           ))}
@@ -709,8 +762,13 @@ function App(): React.ReactElement {
   function PrivacyPage(): React.ReactElement {
     return (
       <div className="content">
+        <PageHeading
+          eyebrow="隐私与设置"
+          title="数据只留在你的浏览器"
+          description="调整保护策略、管理网站授权，并随时控制本地数据。"
+        />
         <section className="card">
-          <h2 className="card-title">本地数据概览</h2>
+          <div className="section-heading"><span className="section-icon" aria-hidden="true">▦</span><h2 className="card-title">本地数据概览</h2></div>
           <div className="stat-grid" style={{ marginTop: 12 }}>
             <div className="stat"><div className="stat-value">{stats.drafts}</div><div className="stat-label">临时草稿</div></div>
             <div className="stat"><div className="stat-value">{stats.snippets}</div><div className="stat-label">永久片段</div></div>
@@ -721,9 +779,9 @@ function App(): React.ReactElement {
             为支持直接打开侧边栏，文栈只查询当前活动标签页的网址和标题。未逐站授权前，不读取网页正文或输入内容。
           </div>
         </section>
-        <section className="card">
-          <h2 className="card-title">草稿策略</h2>
-          <div className="row-between" style={{ marginTop: 12 }}>
+        <section className="card settings-card">
+          <div className="section-heading"><span className="section-icon" aria-hidden="true">◌</span><h2 className="card-title">保存策略</h2></div>
+          <div className="row-between setting-row" style={{ marginTop: 12 }}>
             <div className="grow">
               <div style={{ fontSize: 12, fontWeight: 700 }}>自动保存普通输入</div>
               <div className="meta" style={{ marginTop: 3 }}>
@@ -755,17 +813,19 @@ function App(): React.ReactElement {
           </select>
         </section>
         <section className="card">
-          <div className="row-between"><h2 className="card-title">已授权网站</h2><span className="meta">{Object.keys(grants).length}个</span></div>
+          <div className="section-heading section-heading-between"><div className="section-heading"><span className="section-icon" aria-hidden="true">◎</span><h2 className="card-title">已授权网站</h2></div><span className="count-badge small-count">{Object.keys(grants).length}</span></div>
+          <div className="grant-list">
           {Object.values(grants).map((grant) => (
-            <div className="row-between" style={{ marginTop: 11 }} key={grant.origin}>
+            <div className="row-between grant-row" key={grant.origin}>
               <div className="grow"><div className="truncate" style={{ fontSize: 12, fontWeight: 650 }}>{grant.origin}</div><div className="meta">启用于 {formatTime(grant.enabledAt)}</div></div>
               <button className="button danger small" onClick={() => void revokeGrant(grant.origin)}>撤销</button>
             </div>
           ))}
+          </div>
           {!Object.keys(grants).length ? <div className="notice" style={{ marginTop: 10 }}>尚未授权任何网站。</div> : null}
         </section>
-        <section className="card">
-          <h2 className="card-title">数据控制</h2>
+        <section className="card data-card">
+          <div className="section-heading"><span className="section-icon" aria-hidden="true">↕</span><h2 className="card-title">数据控制</h2></div>
           <p className="card-description">可以导出本地备份，也可以导入旧版本文栈生成的JSON。文件只在当前浏览器中读取，不会上传。</p>
           <input
             ref={importInputRef}
