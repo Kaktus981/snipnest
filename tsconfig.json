@@ -15,7 +15,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["chrome", "node", "vitest/globals"]
+    "types": ["chrome", "node"]
   },
   "include": ["src", "vite.config.ts"]
 }
