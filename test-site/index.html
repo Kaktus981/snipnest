@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="文栈 SnipNest 本地全功能测试站" />
+    <title>文栈 SnipNest · 全功能测试站</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="回到页面顶部">
+        <span class="brand-mark">文</span>
+        <span><strong>文栈测试站</strong><small>SnipNest Test Lab</small></span>
+      </a>
+      <div class="privacy-badge"><span></span>完全本地 · 不上传</div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">为第一次使用浏览器扩展的人设计</span>
+          <h1>跟着页面走一遍，<br /><em>测试文栈的全部核心能力。</em></h1>
+          <p>这个网站只运行在你的电脑里。下面的姓名、经历和验证码都是虚构测试数据，不会发送到任何服务器。</p>
+          <div class="hero-actions">
+            <a class="primary-action" href="#permission">从第1步开始</a>
+            <button class="secondary-action" id="reset-progress" type="button">重置测试进度</button>
+          </div>
+        </div>
+        <div class="progress-card" aria-live="polite">
+          <div class="progress-top"><span>测试进度</span><strong id="progress-number">0 / 8</strong></div>
+          <div class="progress-track"><span id="progress-bar"></span></div>
+          <p id="progress-message">先让文栈获得这个本地网站的权限。</p>
+          <div class="shield-visual"><span class="shield-paper"></span><span class="shield-check">✓</span></div>
+        </div>
+      </section>
+
+      <section class="before-you-start" id="permission">
+        <div class="section-heading">
+          <span class="step-number">01</span>
+          <div><h2>先让插件认识这个网站</h2><p>这是逐站授权功能的测试，也是使用文栈前唯一需要做的准备。</p></div>
+        </div>
+        <div class="instruction-grid">
+          <article><span>1</span><h3>找到扩展按钮</h3><p>看 Edge 右上角，点击像拼图一样的“扩展”图标。</p></article>
+          <article><span>2</span><h3>打开文栈</h3><p>在列表中点击“文栈 SnipNest”，必要时先点小眼睛或图钉固定它。</p></article>
+          <article><span>3</span><h3>一次点击完成启用</h3><p>点击“保护并打开文栈”，再在 Edge 权限框点击“允许”。侧边栏会同步打开并自动显示“保护中”，无需再次点击。</p></article>
+        </div>
+        <label class="completion"><input type="checkbox" data-test-check="permission" /><span>我已经看到绿色“保护中”，并刷新过页面</span></label>
+      </section>
+
+      <section class="lab-section" id="autosave">
+        <div class="section-heading">
+          <span class="step-number">02</span>
+          <div><h2>短文本自动保存与刷新恢复</h2><p>先测试1个字也能保存，再放入长文字测试刷新恢复。</p></div>
+        </div>
+        <div class="lab-grid">
+          <article class="test-card feature-card">
+            <div class="card-head"><div><span class="card-kicker">普通长文本</span><h3>个人介绍</h3></div><span class="live-status" id="intro-status">等待输入</span></div>
+            <label for="intro">请简单介绍你的工作经验</label>
+            <textarea id="intro" name="introduction" placeholder="点击下方按钮填入虚构的测试文字"></textarea>
+            <div class="field-meta"><span id="intro-count">0 字</span><span>从第1个非空字符开始保护</span></div>
+            <div class="button-row">
+              <button class="soft-button" type="button" data-fill="intro" data-version="2">只填入1个字</button>
+              <button class="soft-button" type="button" data-fill="intro" data-version="1">填入示例文字</button>
+              <button class="outline-button" type="button" id="reload-page">等待2秒后刷新</button>
+            </div>
+            <div class="tip-box"><strong>刷新之后：</strong>点击这个空白输入框，再点击右侧出现的“文”，选择“恢复上次内容”。</div>
+          </article>
+          <aside class="expect-card">
+            <span class="expect-icon">↻</span>
+            <h3>你应该看到什么？</h3>
+            <ol><li>只输入1个字也显示“已保存”。</li><li>短草稿进入侧边栏折叠区。</li><li>刷新后可从“文”恢复长文字。</li></ol>
+            <label class="completion"><input type="checkbox" data-test-check="autosave" /><span>我成功恢复了刷新前的文字</span></label>
+          </aside>
+        </div>
+      </section>
+
+      <section class="lab-section" id="history">
+        <div class="section-heading">
+          <span class="step-number">03</span>
+          <div><h2>字段级历史版本</h2><p>依次生成三个版本，每次按钮都会触发输入并让字段失去焦点。</p></div>
+        </div>
+        <article class="test-card wide-card">
+          <div class="version-layout">
+            <div>
+              <label for="history-text">项目经历</label>
+              <textarea id="history-text" name="project_experience" placeholder="依次点击右侧的版本按钮"></textarea>
+              <div class="event-console"><span class="console-dot"></span><strong>字段事件：</strong><span id="history-event">尚未触发</span></div>
+            </div>
+            <div class="version-buttons">
+              <button type="button" data-fill="history" data-version="1"><span>A</span>建立第一个版本</button>
+              <button type="button" data-fill="history" data-version="2"><span>B</span>修改为第二版</button>
+              <button type="button" data-fill="history" data-version="3"><span>C</span>修改为第三版</button>
+            </div>
+          </div>
+          <div class="tip-box"><strong>检查方法：</strong>打开文栈侧边栏 →“草稿”→ 找到“项目经历”→“查看历史”，应该能看到多个版本。</div>
+          <div class="button-row">
+            <button class="outline-button" type="button" id="clear-history">模拟一次性误删全部文字</button>
+          </div>
+          <div class="tip-box"><strong>误删保护：</strong>先建立第三版并等待2秒，再点击上方按钮。文栈应显示“疑似误删”，并允许恢复删除前内容。</div>
+          <label class="completion"><input type="checkbox" data-test-check="history" /><span>我在侧边栏看到了项目经历的历史版本</span></label>
+        </article>
+      </section>
+
+      <section class="lab-section" id="dynamic">
+        <div class="section-heading">
+          <span class="step-number">04</span>
+          <div><h2>动态表单与富文本</h2><p>测试页面加载以后才出现的输入框，以及常见的网页富文本区域。</p></div>
+        </div>
+        <div class="lab-grid">
+          <article class="test-card">
+            <span class="card-kicker">动态表单</span><h3>加载后新增字段</h3>
+            <p class="card-copy">先点击按钮创建输入框，再输入任意非空内容。</p>
+            <button class="soft-button full" id="add-dynamic" type="button">＋ 创建动态输入框</button>
+            <div id="dynamic-field"></div>
+          </article>
+          <article class="test-card">
+            <span class="card-kicker">Contenteditable</span><h3>富文本编辑区域</h3>
+            <label for="rich-editor">项目总结</label>
+            <div id="rich-editor" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="项目总结" data-placeholder="在这里输入，或使用示例文字按钮"></div>
+            <button class="soft-button full" type="button" data-fill="rich" data-version="1">填入富文本测试内容</button>
+          </article>
+        </div>
+        <label class="completion"><input type="checkbox" data-test-check="dynamic" /><span>两个区域都出现了“文”，并能在草稿列表中找到</span></label>
+      </section>
+
+      <section class="lab-section" id="sensitive">
+        <div class="section-heading">
+          <span class="step-number">05</span>
+          <div><h2>敏感字段防护</h2><p>下面全是虚构数据。文栈必须忽略这些输入，右侧不应出现“文”。</p></div>
+        </div>
+        <article class="test-card wide-card sensitive-card">
+          <div class="sensitive-grid">
+            <div><label for="test-password">测试密码</label><input id="test-password" type="password" value="not-a-real-password" /></div>
+            <div><label for="verification-code">短信验证码</label><input id="verification-code" name="verification_code" type="text" value="123456" /></div>
+            <div><label for="card-number">银行卡号</label><input id="card-number" name="card_number" type="text" autocomplete="cc-number" value="4111 1111 1111 1111" /></div>
+          </div>
+          <div class="warning-box">这些只是测试字符串，不是真实账号信息。请不要在任何测试页面填写自己的密码、验证码或银行卡。</div>
+          <a class="danger-link" href="./checkout/payment.html">打开“支付页面”拦截测试 →</a>
+          <label class="completion"><input type="checkbox" data-test-check="sensitive" /><span>这些字段没有出现“文”，草稿列表也没有相关记录</span></label>
+        </article>
+      </section>
+
+      <section class="lab-section" id="snippet">
+        <div class="section-heading">
+          <span class="step-number">06</span>
+          <div><h2>草稿升级为永久片段</h2><p>把第2步的“个人介绍”从临时草稿变成永久内容。</p></div>
+        </div>
+        <div class="walkthrough-card">
+          <div><span>1</span><p>打开文栈侧边栏，进入“草稿”。</p></div><i></i>
+          <div><span>2</span><p>找到“个人介绍”，点击“升级片段”。</p></div><i></i>
+          <div><span>3</span><p>名称填写“个人介绍”，分类填写“求职”，标签填写“个人介绍，前端”。</p></div>
+        </div>
+        <label class="completion"><input type="checkbox" data-test-check="promote" /><span>“个人介绍”已经出现在侧边栏的“片段”页面</span></label>
+      </section>
+
+      <section class="lab-section" id="recommendation">
+        <div class="section-heading">
+          <span class="step-number">07</span>
+          <div><h2>本地推荐与手动插入</h2><p>下面是另一个字段，但它与刚保存的片段语义相似。</p></div>
+        </div>
+        <article class="test-card wide-card recommendation-card">
+          <div class="recommend-layout">
+            <div>
+              <label for="intro-target">个人介绍</label>
+              <textarea id="intro-target" name="candidate_introduction" placeholder="点击此处，然后点击右侧的“文”查看推荐"></textarea>
+              <div class="event-console"><span class="console-dot"></span><strong>插入事件检测：</strong><span id="insert-event">等待片段插入</span></div>
+            </div>
+            <aside><span class="spark">✦</span><h3>预期结果</h3><p>浮动面板推荐“个人介绍”。点击后，文字会进入左侧输入框，事件检测器会变成绿色。</p></aside>
+          </div>
+          <label class="completion"><input type="checkbox" data-test-check="recommend" /><span>片段被正确推荐并插入，事件检测器显示成功</span></label>
+        </article>
+      </section>
+
+      <section class="lab-section final-section" id="privacy">
+        <div class="section-heading">
+          <span class="step-number">08</span>
+          <div><h2>隐私设置、导出与撤销权限</h2><p>最后检查数据控制。清除全部数据请放在所有测试完成之后。</p></div>
+        </div>
+        <div class="final-grid">
+          <article><span>分组</span><h3>切换草稿整理方式</h3><p>在“草稿”页面依次选择按网站、按日期和按字段；选择应在重新打开侧边栏后保留。</p></article>
+          <article><span>批量</span><h3>选择与延长</h3><p>选择一个分组或多份草稿，点击“延长30天”；批量删除请仅在最后确认不再需要测试数据时使用。</p></article>
+          <article><span>7天</span><h3>检查过期策略</h3><p>侧边栏“隐私设置”应显示默认保留7天；单份或批量延长后状态应变为30天。</p></article>
+          <article><span>JSON</span><h3>导出本地备份</h3><p>点击“导出 JSON”，确认电脑得到一个以 snipnest 开头的文件。文件包含测试正文，请妥善保存或删除。</p></article>
+          <article><span>OFF</span><h3>撤销网站权限</h3><p>在“已授权网站”中撤销 127.0.0.1。刷新本页后再点击输入框，“文”不应出现。</p></article>
+        </div>
+        <div class="destructive-note"><strong>可选的最后一步：</strong>先导出，再点击“清除全部”。这会删除所有草稿和片段，无法撤销。</div>
+        <label class="completion"><input type="checkbox" data-test-check="privacy" /><span>我完成了导出，并验证撤销权限后插件停止工作</span></label>
+      </section>
+
+      <section class="success-panel" id="success-panel" hidden>
+        <span class="success-check">✓</span><div><span class="eyebrow">全部完成</span><h2>你已经测试完文栈 SnipNest v0.2.2 的核心功能。</h2><p>如果某一步与预期不同，请记住步骤编号和看到的提示，以便准确定位问题。</p></div>
+      </section>
+    </main>
+
+    <footer><strong>文栈 SnipNest 测试站</strong><span>本页面无网络请求，不收集、不上传测试内容。</span></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
