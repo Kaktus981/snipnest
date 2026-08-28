@@ -565,9 +565,10 @@ function App(): React.ReactElement {
   function CurrentPage(): React.ReactElement {
     return (
       <div className="content">
-        <section className="card">
+        <section className="card site-card">
           <div className="row-between">
             <div className="grow">
+              <div className="eyebrow">当前网站</div>
               <h2 className="card-title truncate">{activeTab?.title ?? "当前页面"}</h2>
               <p className="card-description truncate">{currentOrigin ?? "当前页面不可访问"}</p>
             </div>
@@ -590,6 +591,12 @@ function App(): React.ReactElement {
                   ? "当前网站已授权，点击网页中的长文本框即可开始自动保存和保护。"
                   : "当前网站已授权。自动保存已关闭，但大段文字的误删保护仍然启用。"}
               </div>
+              <div className="chip-list state-chips">
+                <span className={`chip ${settings.autoSaveEnabled ? "chip-success" : "chip-muted"}`}>
+                  {settings.autoSaveEnabled ? "自动保存开启" : "自动保存关闭"}
+                </span>
+                <span className="chip chip-success">误删保护开启</span>
+              </div>
               <button className="button danger block" style={{ marginTop: 10 }} disabled={siteBusy} onClick={() => void disableCurrentSite()}>
                 {siteBusy ? "正在停止…" : "停止保护此网站"}
               </button>
@@ -603,7 +610,7 @@ function App(): React.ReactElement {
             </div>
           )}
         </section>
-        <section className="card">
+        <section className="card field-card">
           <h2 className="card-title">当前输入位置</h2>
           {activeField ? (
             <>
@@ -616,12 +623,12 @@ function App(): React.ReactElement {
             </>
           ) : <div className="notice" style={{ marginTop: 10 }}>请先点击网页中的长文本输入框。</div>}
         </section>
-        <section className="card">
+        <section className="card suggestion-section">
           <h2 className="card-title">推荐片段</h2>
           {suggestions.length ? (
             <div className="list" style={{ marginTop: 10 }}>
               {suggestions.map((suggestion) => (
-                <div className="list-card" key={suggestion.snippet.id}>
+                <div className="list-card suggestion-card" key={suggestion.snippet.id}>
                   <div className="row-between"><strong className="list-title">{suggestion.snippet.title}</strong><span className="chip">匹配 {suggestion.score}</span></div>
                   <div className="preview">{suggestion.snippet.content}</div>
                   <div className="meta" style={{ marginTop: 7 }}>{suggestion.reasons.join(" · ")}</div>
@@ -631,7 +638,7 @@ function App(): React.ReactElement {
             </div>
           ) : <div className="notice" style={{ marginTop: 10 }}>当前字段暂无达到匹配阈值的片段。</div>}
         </section>
-        <section className="card">
+        <section className="card draft-section">
           <div className="row-between"><h2 className="card-title">本页草稿</h2><span className="meta">{currentDrafts.length}份</span></div>
           {currentDrafts.length ? <div className="list" style={{ marginTop: 10 }}>{currentDrafts.slice(0, 3).map((draft) => <DraftCard key={draft.id} draft={draft} activeTabId={activeTab?.id} canRestore={activeField?.fingerprint === draft.field.fingerprint} onChanged={() => void loadData()} onPromote={() => setPromoting(draft)} />)}</div> : <div className="notice" style={{ marginTop: 10 }}>{settings.autoSaveEnabled ? `输入达到${settings.minChars}字并停顿后，草稿会出现在这里。` : "自动保存已关闭；发生疑似误删时，恢复草稿会出现在这里。"}</div>}
         </section>
@@ -682,7 +689,7 @@ function App(): React.ReactElement {
         </div>
         <div className="list" style={{ marginTop: 12 }}>
           {filteredSnippets.map((snippet) => (
-            <article className="list-card" key={snippet.id}>
+            <article className="list-card snippet-card" key={snippet.id}>
               <div className="row-between"><div className="grow"><h3 className="list-title truncate">{snippet.title}</h3><div className="meta">{snippet.category} · 使用{snippet.useCount}次</div></div><span className="chip">永久</span></div>
               <div className="preview">{snippet.content}</div>
               <div className="chip-list" style={{ marginTop: 8 }}>{snippet.tags.map((tag) => <span className="chip" key={tag}>{tag}</span>)}</div>
@@ -793,8 +800,14 @@ function App(): React.ReactElement {
       </header>
       <nav className="tabs">
         {(["current", "drafts", "snippets", "privacy"] as TabName[]).map((name) => (
-          <button className={`tab ${tabName === name ? "active" : ""}`} key={name} onClick={() => { setTabName(name); setSearch(""); }}>
-            {{ current: "当前页面", drafts: "草稿", snippets: "片段", privacy: "隐私设置" }[name]}
+          <button
+            className={`tab ${tabName === name ? "active" : ""}`}
+            key={name}
+            aria-current={tabName === name ? "page" : undefined}
+            onClick={() => { setTabName(name); setSearch(""); }}
+          >
+            <span className="tab-icon" aria-hidden="true">{{ current: "⌂", drafts: "▤", snippets: "✦", privacy: "⚙" }[name]}</span>
+            <span>{{ current: "当前页面", drafts: "草稿", snippets: "片段", privacy: "隐私设置" }[name]}</span>
           </button>
         ))}
       </nav>

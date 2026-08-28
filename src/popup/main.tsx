@@ -125,9 +125,10 @@ function Popup(): React.ReactElement {
         ) : null}
         {tab ? (
           <>
-            <section className="card">
+            <section className="card site-card">
               <div className="row-between">
                 <div className="grow">
+                  <div className="eyebrow">当前网站</div>
                   <h2 className="card-title truncate">{tab.title}</h2>
                   <div className="card-description truncate">{tab.origin}</div>
                 </div>
