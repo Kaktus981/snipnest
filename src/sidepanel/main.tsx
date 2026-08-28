@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { groupDrafts, isShortDraft, type DraftGroup } from "../shared/draft-organize";
-import { normalizeSettings } from "../shared/logic";
+import { hostPermissionPattern, isLikelySensitiveUrl, normalizeSettings } from "../shared/logic";
 import {
   DEFAULT_SETTINGS,
   type Draft,
@@ -16,6 +16,12 @@ import {
 import "../styles.css";
 
 type TabName = "current" | "drafts" | "snippets" | "privacy";
+
+interface CurrentSiteStatus {
+  origin: string | null;
+  enabled: boolean;
+  permitted: boolean;
+}
 
 async function message<T = unknown>(payload: unknown): Promise<T> {
   const response = await chrome.runtime.sendMessage(payload);
@@ -239,6 +245,12 @@ function App(): React.ReactElement {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [stats, setStats] = useState({ drafts: 0, snippets: 0, characters: 0 });
   const [grants, setGrants] = useState<Record<string, SiteGrant>>({});
+  const [currentSiteStatus, setCurrentSiteStatus] = useState<CurrentSiteStatus>({
+    origin: null,
+    enabled: false,
+    permitted: false
+  });
+  const [siteBusy, setSiteBusy] = useState(false);
   const [error, setError] = useState("");
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -248,6 +260,9 @@ function App(): React.ReactElement {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       setActiveTab(tab ?? null);
+      const tabUrl = tab?.url && /^https?:/.test(tab.url) ? tab.url : null;
+      const tabOrigin = tabUrl ? new URL(tabUrl).origin : null;
+      setCurrentSiteStatus({ origin: tabOrigin, enabled: false, permitted: false });
       const [draftResponse, snippetResponse, statsResponse, stored] = await Promise.all([
         message<{ drafts: Draft[] }>({ type: "LIST_DRAFTS" }),
         message<{ snippets: Snippet[] }>({ type: "LIST_SNIPPETS" }),
@@ -259,6 +274,21 @@ function App(): React.ReactElement {
       setStats(statsResponse.stats);
       setSettings(normalizeSettings(stored.settings as Partial<Settings> | undefined));
       setGrants((stored.siteGrants ?? {}) as Record<string, SiteGrant>);
+      if (tabOrigin && tabUrl && tab?.id && tab.windowId !== undefined) {
+        const status = await message<{ enabled: boolean; permitted: boolean }>({
+          type: "GET_SITE_STATUS",
+          origin: tabOrigin
+        });
+        setCurrentSiteStatus({ origin: tabOrigin, enabled: status.enabled, permitted: status.permitted });
+        if (!status.enabled && !isLikelySensitiveUrl(tabUrl)) {
+          await message({
+            type: "PREPARE_SITE_ACTIVATION",
+            origin: tabOrigin,
+            tabId: tab.id,
+            windowId: tab.windowId
+          });
+        }
+      }
       if (tab?.id) {
         const fieldResponse = await message<{ field: FieldContext | null }>({ type: "GET_ACTIVE_FIELD", tabId: tab.id });
         setActiveField(fieldResponse.field);
@@ -328,7 +358,58 @@ function App(): React.ReactElement {
   }, [drafts]);
 
   const currentOrigin = activeTab?.url && /^https?:/.test(activeTab.url) ? new URL(activeTab.url).origin : null;
+  const currentRisky = Boolean(activeTab?.url && /^https?:/.test(activeTab.url) && isLikelySensitiveUrl(activeTab.url));
+  const currentProtected = Boolean(
+    currentOrigin && currentSiteStatus.origin === currentOrigin && currentSiteStatus.enabled
+  );
   const currentDrafts = currentOrigin ? drafts.filter((draft) => draft.origin === currentOrigin) : [];
+
+  async function enableCurrentSite(): Promise<void> {
+    if (!activeTab?.id || activeTab.windowId === undefined || !activeTab.url || !currentOrigin || currentRisky) return;
+    setSiteBusy(true);
+    setError("");
+    try {
+      // Start both operations inside the click task so Edge recognizes the
+      // permission request as a direct user action. Explicit registration
+      // after acceptance also covers a fast permissions.onAdded event.
+      const preparePromise = message({
+        type: "PREPARE_SITE_ACTIVATION",
+        origin: currentOrigin,
+        tabId: activeTab.id,
+        windowId: activeTab.windowId
+      });
+      const permissionPromise = currentSiteStatus.permitted
+        ? Promise.resolve(true)
+        : chrome.permissions.request({ origins: [hostPermissionPattern(currentOrigin)] });
+      const [, accepted] = await Promise.all([preparePromise, permissionPromise]);
+      if (!accepted) {
+        await message({ type: "CANCEL_SITE_ACTIVATION", origin: currentOrigin });
+        throw new Error("你取消了网站授权，当前网站没有被启用");
+      }
+      await message({ type: "REGISTER_SITE", origin: currentOrigin });
+      await loadData();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "网站授权失败");
+    } finally {
+      setSiteBusy(false);
+    }
+  }
+
+  async function disableCurrentSite(): Promise<void> {
+    if (!currentOrigin) return;
+    setSiteBusy(true);
+    setError("");
+    try {
+      await message({ type: "UNREGISTER_SITE", origin: currentOrigin });
+      setActiveField(null);
+      setSuggestions([]);
+      await loadData();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "停止保护失败");
+    } finally {
+      setSiteBusy(false);
+    }
+  }
 
   async function insertText(text: string, snippetId?: string): Promise<void> {
     if (!activeTab?.id) return;
@@ -446,10 +527,33 @@ function App(): React.ReactElement {
               <h2 className="card-title truncate">{activeTab?.title ?? "当前页面"}</h2>
               <p className="card-description truncate">{currentOrigin ?? "当前页面不可访问"}</p>
             </div>
-            <span className={`status ${currentOrigin && grants[currentOrigin]?.enabled ? "success" : "muted"}`}>
-              {currentOrigin && grants[currentOrigin]?.enabled ? "保护中" : "未保护"}
+            <span className={`status ${currentRisky ? "warning" : currentProtected ? "success" : "muted"}`}>
+              {currentRisky ? "敏感页面" : currentProtected ? "保护中" : "未保护"}
             </span>
           </div>
+          {!currentOrigin ? (
+            <div className="notice" style={{ marginTop: 12 }}>
+              Edge 新标签页、设置页和扩展商店等内部页面无法授权。请先打开普通网站。
+            </div>
+          ) : currentRisky ? (
+            <div className="notice warning" style={{ marginTop: 12 }}>
+              当前网址疑似涉及支付或安全操作，为避免保存敏感信息，文栈不会在这里启用保护。
+            </div>
+          ) : currentProtected ? (
+            <div style={{ marginTop: 12 }}>
+              <div className="notice">当前网站已授权，点击网页中的长文本框即可开始保护。</div>
+              <button className="button danger block" style={{ marginTop: 10 }} disabled={siteBusy} onClick={() => void disableCurrentSite()}>
+                {siteBusy ? "正在停止…" : "停止保护此网站"}
+              </button>
+            </div>
+          ) : (
+            <div style={{ marginTop: 12 }}>
+              <div className="notice">授权仅适用于当前网站，可随时撤销。密码、验证码和支付字段仍会被过滤。</div>
+              <button className="button primary block" style={{ marginTop: 10 }} disabled={siteBusy} onClick={() => void enableCurrentSite()}>
+                {siteBusy ? "正在请求授权…" : "保护此网站"}
+              </button>
+            </div>
+          )}
         </section>
         <section className="card">
           <h2 className="card-title">当前输入位置</h2>

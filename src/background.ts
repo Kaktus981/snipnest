@@ -43,6 +43,7 @@ const CLEANUP_ALARM = "draftvault-cleanup";
 const CONTENT_SCRIPT_PREFIX = "draftvault-site-";
 const PENDING_ACTIVATIONS_KEY = "pendingSiteActivations";
 const activeFields = new Map<number, FieldContext>();
+const siteRegistrationTasks = new Map<string, Promise<SiteGrant>>();
 
 async function getPendingActivations(): Promise<Record<string, PendingSiteActivation>> {
   const stored = await chrome.storage.local.get(PENDING_ACTIVATIONS_KEY);
@@ -141,8 +142,7 @@ async function setGrant(origin: string, enabled: boolean): Promise<SiteGrant> {
   return grant;
 }
 
-async function registerSite(origin: string): Promise<SiteGrant> {
-  const normalizedOrigin = new URL(origin).origin;
+async function registerSiteNow(normalizedOrigin: string): Promise<SiteGrant> {
   const pattern = originPattern(normalizedOrigin);
   const permitted = await chrome.permissions.contains({ origins: [pattern] });
   if (!permitted) throw new Error("当前网站尚未授权");
@@ -177,6 +177,22 @@ async function registerSite(origin: string): Promise<SiteGrant> {
   );
   await cancelSiteActivation(normalizedOrigin);
   return grant;
+}
+
+async function registerSite(origin: string): Promise<SiteGrant> {
+  const normalizedOrigin = new URL(origin).origin;
+  const existingTask = siteRegistrationTasks.get(normalizedOrigin);
+  if (existingTask) return existingTask;
+
+  const task = registerSiteNow(normalizedOrigin);
+  siteRegistrationTasks.set(normalizedOrigin, task);
+  try {
+    return await task;
+  } finally {
+    if (siteRegistrationTasks.get(normalizedOrigin) === task) {
+      siteRegistrationTasks.delete(normalizedOrigin);
+    }
+  }
 }
 
 async function completePendingActivations(grantedOrigins?: string[]): Promise<void> {
