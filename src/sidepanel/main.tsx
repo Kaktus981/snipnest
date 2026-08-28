@@ -219,7 +219,7 @@ function DraftCard({
   }
 
   return (
-    <article className={`list-card draft-card ${draft.recovery ? "has-recovery" : ""}`}>
+    <article className={`draft-row ${draft.recovery ? "has-recovery" : ""}`}>
       <div className="row-between">
         {onSelect ? <input className="select-box" type="checkbox" aria-label={`选择${fieldName(draft.field)}`} checked={selected} onChange={(event) => onSelect(event.target.checked)} /> : null}
         <div className="grow">
@@ -601,12 +601,12 @@ function App(): React.ReactElement {
 
   function CurrentPage(): React.ReactElement {
     return (
-      <div className="content">
-        <section className="card site-card">
-          <div className="row-between">
+      <div className="content current-workspace">
+        <section className="context-panel">
+          <div className="section-label">当前网站</div>
+          <div className="context-line row-between">
             <div className="grow">
-              <div className="section-label">当前网站</div>
-              <h2 className="card-title truncate">{activeTab?.title ?? "当前页面"}</h2>
+              <h2 className="context-title truncate">{activeTab?.title ?? "当前页面"}</h2>
               <p className="card-description truncate">{currentOrigin ?? "当前页面不可访问"}</p>
             </div>
             <span className={`status ${currentRisky ? "warning" : currentProtected ? "success" : "muted"}`}>
@@ -614,19 +614,13 @@ function App(): React.ReactElement {
             </span>
           </div>
           {!currentOrigin ? (
-            <div className="notice" style={{ marginTop: 12 }}>
-              Edge 新标签页、设置页和扩展商店等内部页面无法授权。请先打开普通网站。
-            </div>
+            <div className="notice context-notice">Edge 新标签页、设置页和扩展商店等内部页面无法授权。请先打开普通网站。</div>
           ) : currentRisky ? (
-            <div className="notice warning" style={{ marginTop: 12 }}>
-              当前网址疑似涉及支付或安全操作，为避免保存敏感信息，文栈不会在这里启用保护。
-            </div>
+            <div className="notice warning context-notice">当前网址疑似涉及支付或安全操作，文栈不会在这里启用保护。</div>
           ) : currentProtected ? (
-            <div style={{ marginTop: 12 }}>
+            <div className="context-actions">
               <div className="notice">
-                {settings.autoSaveEnabled
-                  ? "当前网站已授权，点击网页中的长文本框即可开始自动保存和保护。"
-                  : "当前网站已授权。自动保存已关闭，但大段文字的误删保护仍然启用。"}
+                {settings.autoSaveEnabled ? "已授权。点击网页中的长文本框即可开始自动保存。" : "已授权。自动保存已关闭，误删保护仍然启用。"}
               </div>
               <div className="status-line">
                 <span className={`inline-status ${settings.autoSaveEnabled ? "is-on" : "is-off"}`}>
@@ -634,51 +628,59 @@ function App(): React.ReactElement {
                 </span>
                 <span className="inline-status is-on">误删保护开启</span>
               </div>
-              <button className="button danger block" style={{ marginTop: 10 }} disabled={siteBusy} onClick={() => void disableCurrentSite()}>
-                {siteBusy ? "正在停止…" : "停止保护此网站"}
+              <button className="button danger" disabled={siteBusy} onClick={() => void disableCurrentSite()}>
+                {siteBusy ? "正在停止…" : "停止保护"}
               </button>
             </div>
           ) : (
-            <div style={{ marginTop: 12 }}>
-              <div className="notice">授权仅适用于当前网站，可随时撤销。密码、验证码和支付字段仍会被过滤。</div>
-              <button className="button primary block" style={{ marginTop: 10 }} disabled={siteBusy} onClick={() => void enableCurrentSite()}>
+            <div className="context-actions">
+              <div className="notice">授权仅适用于当前网站。密码、验证码和支付字段不会记录。</div>
+              <button className="button primary" disabled={siteBusy} onClick={() => void enableCurrentSite()}>
                 {siteBusy ? "正在请求授权…" : "保护此网站"}
               </button>
             </div>
           )}
         </section>
-        <section className="card field-card">
-          <h2 className="card-title">当前输入位置</h2>
+        <section className="workspace-section field-section">
+          <div className="section-heading-between">
+            <div>
+              <div className="section-label">输入位置</div>
+              <h2 className="section-title">当前字段</h2>
+            </div>
+            {activeField ? <span className="status-note">已识别</span> : null}
+          </div>
           {activeField ? (
             <>
-              <p className="card-description">{fieldName(activeField)}</p>
+              <p className="card-description field-name">{fieldName(activeField)}</p>
               <div className="meta-tags" style={{ marginTop: 9 }}>
                 <span className="meta-tag">{activeField.inputType}</span>
                 {activeField.maxLength ? <span className="meta-tag">最多{activeField.maxLength}字</span> : null}
                 <span className="meta-tag">本地匹配</span>
               </div>
             </>
-          ) : <div className="notice" style={{ marginTop: 10 }}>请先点击网页中的长文本输入框。</div>}
+          ) : <div className="empty-inline">请先点击网页中的长文本输入框。</div>}
         </section>
-        <section className="card suggestion-section">
-          <h2 className="card-title">推荐片段</h2>
-          {suggestions.length ? (
-            <div className="list" style={{ marginTop: 10 }}>
+        {suggestions.length ? (
+          <section className="workspace-section">
+            <div className="section-heading-between"><h2 className="section-title">推荐片段</h2><span className="count-note">{suggestions.length} 条</span></div>
+            <div className="list workspace-list">
               {suggestions.map((suggestion) => (
-                <div className="list-card suggestion-card" key={suggestion.snippet.id}>
+                <article className="content-row suggestion-row" key={suggestion.snippet.id}>
                   <div className="row-between"><strong className="list-title">{suggestion.snippet.title}</strong><span className="meta score-note">匹配 {suggestion.score}</span></div>
                   <div className="preview">{suggestion.snippet.content}</div>
                   <div className="meta" style={{ marginTop: 7 }}>{suggestion.reasons.join(" · ")}</div>
                   <button className="button primary small" style={{ marginTop: 9 }} onClick={() => void insertText(suggestion.snippet.content, suggestion.snippet.id)}>预览后插入</button>
-                </div>
+                </article>
               ))}
             </div>
-          ) : <div className="notice" style={{ marginTop: 10 }}>当前字段暂无达到匹配阈值的片段。</div>}
-        </section>
-        <section className="card draft-section">
-          <div className="row-between"><h2 className="card-title">本页草稿</h2><span className="meta">{currentDrafts.length}份</span></div>
-          {currentDrafts.length ? <div className="list" style={{ marginTop: 10 }}>{currentDrafts.slice(0, 3).map((draft) => <DraftCard key={draft.id} draft={draft} activeTabId={activeTab?.id} canRestore={activeField?.fingerprint === draft.field.fingerprint} onChanged={() => void loadData()} onPromote={() => setPromoting(draft)} />)}</div> : <div className="notice" style={{ marginTop: 10 }}>{settings.autoSaveEnabled ? `输入达到${settings.minChars}字并停顿后，草稿会出现在这里。` : "自动保存已关闭；发生疑似误删时，恢复草稿会出现在这里。"}</div>}
-        </section>
+          </section>
+        ) : null}
+        {currentDrafts.length ? (
+          <section className="workspace-section">
+            <div className="section-heading-between"><h2 className="section-title">本页草稿</h2><span className="count-note">{currentDrafts.length} 份</span></div>
+            <div className="list workspace-list">{currentDrafts.slice(0, 3).map((draft) => <DraftCard key={draft.id} draft={draft} activeTabId={activeTab?.id} canRestore={activeField?.fingerprint === draft.field.fingerprint} onChanged={() => void loadData()} onPromote={() => setPromoting(draft)} />)}</div>
+          </section>
+        ) : null}
       </div>
     );
   }
@@ -717,7 +719,7 @@ function App(): React.ReactElement {
               {shortDraftsOpen ? <div className="group-stack nested">{shortGroups.map((group) => renderGroup(group, "short"))}</div> : null}
             </section>
           ) : null}
-          {!filteredDrafts.length ? <div className="card"><Empty title="还没有草稿">{settings.autoSaveEnabled ? `启用网站保护并输入至少${settings.minChars}个字符后，草稿会自动保存在这里。` : "自动保存已关闭；大段文字被意外清空时，文栈仍会在这里保留恢复草稿。"}</Empty></div> : null}
+          {!filteredDrafts.length ? <div className="empty-panel"><Empty title="还没有草稿">{settings.autoSaveEnabled ? `启用网站保护并输入至少${settings.minChars}个字符后，草稿会自动保存在这里。` : "自动保存已关闭；大段文字被意外清空时，文栈仍会在这里保留恢复草稿。"}</Empty></div> : null}
         </div>
       </div>
     );
@@ -737,9 +739,9 @@ function App(): React.ReactElement {
           <input className="field grow" placeholder="搜索片段、分类或标签" value={search} onChange={(event) => setSearch(event.target.value)} />
           <button className="button primary" onClick={() => setEditingSnippet("new")}>新建</button>
         </div>
-        <div className="list" style={{ marginTop: 12 }}>
+        <div className="list list-table" style={{ marginTop: 12 }}>
           {filteredSnippets.map((snippet) => (
-            <article className="list-card snippet-card" key={snippet.id}>
+            <article className="content-row snippet-row" key={snippet.id}>
               <div className="row-between"><div className="grow"><h3 className="list-title truncate">{snippet.title}</h3><div className="meta">{snippet.category} · 使用{snippet.useCount}次</div></div><span className="status-note">永久</span></div>
               <div className="preview">{snippet.content}</div>
               <div className="meta-tags" style={{ marginTop: 8 }}>{snippet.tags.map((tag) => <span className="meta-tag" key={tag}>{tag}</span>)}</div>
@@ -755,7 +757,7 @@ function App(): React.ReactElement {
               </div>
             </article>
           ))}
-          {!filteredSnippets.length ? <div className="card"><Empty title="还没有永久片段">可以新建片段，也可以从草稿页面将有价值的内容升级为片段。</Empty></div> : null}
+          {!filteredSnippets.length ? <div className="empty-panel"><Empty title="还没有永久片段">可以新建片段，也可以从草稿页面将有价值的内容升级为片段。</Empty></div> : null}
         </div>
       </div>
     );
@@ -769,7 +771,7 @@ function App(): React.ReactElement {
           title="隐私与设置"
           description="权限、保留时间和本地数据"
         />
-        <section className="card">
+        <section className="settings-section">
           <div className="section-heading"><h2 className="card-title">本地数据概览</h2></div>
           <div className="stat-grid" style={{ marginTop: 12 }}>
             <div className="stat"><div className="stat-value">{stats.drafts}</div><div className="stat-label">临时草稿</div></div>
@@ -781,7 +783,7 @@ function App(): React.ReactElement {
             为支持直接打开侧边栏，文栈只查询当前活动标签页的网址和标题。未逐站授权前，不读取网页正文或输入内容。
           </div>
         </section>
-        <section className="card settings-card">
+        <section className="settings-section">
           <div className="section-heading"><h2 className="card-title">保存策略</h2></div>
           <div className="row-between setting-row" style={{ marginTop: 12 }}>
             <div className="grow">
@@ -814,7 +816,7 @@ function App(): React.ReactElement {
             <option value="site">按网站</option><option value="date">按日期</option><option value="field">按字段</option>
           </select>
         </section>
-        <section className="card">
+        <section className="settings-section">
           <div className="section-heading section-heading-between"><div className="section-heading"><h2 className="card-title">已授权网站</h2></div><span className="count-note">{Object.keys(grants).length} 个</span></div>
           <div className="grant-list">
           {Object.values(grants).map((grant) => (
@@ -826,7 +828,7 @@ function App(): React.ReactElement {
           </div>
           {!Object.keys(grants).length ? <div className="notice" style={{ marginTop: 10 }}>尚未授权任何网站。</div> : null}
         </section>
-        <section className="card data-card">
+        <section className="settings-section data-section">
           <div className="section-heading"><h2 className="card-title">数据控制</h2></div>
           <p className="card-description">可以导出本地备份，也可以导入旧版本文栈生成的JSON。文件只在当前浏览器中读取，不会上传。</p>
           <input
@@ -855,11 +857,6 @@ function App(): React.ReactElement {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="brand-mark">文</div>
-        <div className="brand-copy grow"><h1 className="brand-title">文栈 SnipNest</h1><div className="brand-subtitle">本地写作保护</div></div>
-        <span className="local-note">仅本地</span>
-      </header>
       <nav className="tabs">
         {(["current", "drafts", "snippets", "privacy"] as TabName[]).map((name) => (
           <button
