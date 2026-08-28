@@ -109,7 +109,7 @@ function Popup(): React.ReactElement {
         <div className="brand-mark">文</div>
         <div className="brand-copy">
           <h1 className="brand-title">文栈 SnipNest</h1>
-          <div className="brand-subtitle">写过一次，不再丢失</div>
+          <div className="brand-subtitle">本地写作保护</div>
         </div>
       </header>
       <main className="content">
@@ -128,7 +128,7 @@ function Popup(): React.ReactElement {
             <section className="card site-card">
               <div className="row-between">
                 <div className="grow">
-                  <div className="eyebrow">当前网站</div>
+                  <div className="section-label">当前网站</div>
                   <h2 className="card-title truncate">{tab.title}</h2>
                   <div className="card-description truncate">{tab.origin}</div>
                 </div>
@@ -158,14 +158,9 @@ function Popup(): React.ReactElement {
                 </button>
               </div>
             </section>
-            <section className="card">
-              <div className="row-between">
-                <div>
-                  <h2 className="card-title">本地、克制、透明</h2>
-                  <p className="card-description">草稿只保存在当前浏览器，临时内容默认7天后删除。</p>
-                </div>
-                <div className="brand-mark" style={{ width: 34, height: 34, background: "#21a179" }}>✓</div>
-              </div>
+            <section className="local-disclosure">
+              <span className="local-dot" aria-hidden="true" />
+              <p>草稿仅保存在当前浏览器，临时内容默认 7 天后删除。</p>
             </section>
           </>
         ) : null}
