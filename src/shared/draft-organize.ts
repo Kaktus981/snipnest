@@ -6,7 +6,7 @@ export interface DraftGroup {
   drafts: Draft[];
 }
 
-export function draftFieldName(draft: Draft): string {
+function draftFieldName(draft: Draft): string {
   const field = draft.field;
   return field.label || field.ariaLabel || field.placeholder || field.name || "这个输入框";
 }

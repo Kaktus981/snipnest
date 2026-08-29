@@ -1,4 +1,4 @@
-export type DraftStatus = "temporary" | "extended";
+type DraftStatus = "temporary" | "extended";
 export type DraftGrouping = "site" | "date" | "field";
 
 export interface SiteGrant {
@@ -29,7 +29,7 @@ export interface DraftVersion {
   createdAt: number;
 }
 
-export interface DraftRecovery {
+interface DraftRecovery {
   text: string;
   createdAt: number;
   beforeCharCount: number;
@@ -146,5 +146,4 @@ export type RuntimeMessage =
   | { type: "GET_STATS" }
   | { type: "EXPORT_DATA" }
   | { type: "IMPORT_DATA"; data: unknown }
-  | { type: "CLEAR_ALL_DATA" }
-  | { type: "CLEANUP_EXPIRED" };
+  | { type: "CLEAR_ALL_DATA" };

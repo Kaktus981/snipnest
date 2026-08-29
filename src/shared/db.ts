@@ -31,7 +31,7 @@ function transactionDone(transaction: IDBTransaction): Promise<void> {
   });
 }
 
-export function openDatabase(): Promise<IDBDatabase> {
+function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {

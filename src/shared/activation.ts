@@ -1,6 +1,6 @@
 import { hostPermissionPattern } from "./logic";
 
-export const PENDING_ACTIVATION_TTL_MS = 5 * 60 * 1000;
+const PENDING_ACTIVATION_TTL_MS = 5 * 60 * 1000;
 
 export interface PendingSiteActivation {
   origin: string;

@@ -457,8 +457,6 @@ async function handleMessage(message: RuntimeMessage, sender: chrome.runtime.Mes
     case "CLEAR_ALL_DATA":
       await clearAllData();
       return { ok: true };
-    case "CLEANUP_EXPIRED":
-      return { ok: true, deleted: await cleanupExpired() };
     default:
       return undefined;
   }
