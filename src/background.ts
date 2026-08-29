@@ -322,7 +322,7 @@ async function handleMessage(message: RuntimeMessage, sender: chrome.runtime.Mes
     case "DRAFT_UPDATE": {
       const senderUrl = sender.url ?? sender.tab?.url;
       if (!senderUrl || new URL(senderUrl).origin !== message.payload.field.origin) {
-        throw new Error("草稿来源校验失败");
+        throw new Error("自动保存内容的来源校验失败");
       }
       if (
         isLikelySensitiveUrl(senderUrl) ||
@@ -360,7 +360,7 @@ async function handleMessage(message: RuntimeMessage, sender: chrome.runtime.Mes
     case "DRAFT_DESTRUCTIVE_EDIT": {
       const senderUrl = sender.url ?? sender.tab?.url;
       if (!senderUrl || new URL(senderUrl).origin !== message.payload.field.origin) {
-        throw new Error("草稿来源校验失败");
+        throw new Error("自动保存内容的来源校验失败");
       }
       if (
         isLikelySensitiveUrl(senderUrl) ||
@@ -457,8 +457,6 @@ async function handleMessage(message: RuntimeMessage, sender: chrome.runtime.Mes
     case "CLEAR_ALL_DATA":
       await clearAllData();
       return { ok: true };
-    case "CLEANUP_EXPIRED":
-      return { ok: true, deleted: await cleanupExpired() };
     default:
       return undefined;
   }

@@ -1,14 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <defs>
-    <linearGradient id="g" x1="20" y1="12" x2="106" y2="116" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6D7CFF"/>
-      <stop offset="1" stop-color="#3948C8"/>
-    </linearGradient>
-  </defs>
-  <rect width="128" height="128" rx="30" fill="url(#g)"/>
-  <path d="M37 26h41l17 17v59H37z" fill="#fff" opacity=".96"/>
-  <path d="M78 26v18h17" fill="#DCE0FF"/>
-  <path d="M48 57h36M48 69h36M48 81h23" stroke="#5361DD" stroke-width="7" stroke-linecap="round"/>
-  <path d="M91 76c0 13-8 23-21 28-13-5-21-15-21-28v-3l21-8 21 8z" fill="#21A179" stroke="#fff" stroke-width="4"/>
-  <path d="m61 84 6 6 12-14" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <title>文栈 SnipNest</title>
+  <desc>一卷保存文字的手稿与正在落笔的羽毛笔。</desc>
+
+  <!-- Manuscript body. Its uneven corners keep the paper character visible at small sizes. -->
+  <path
+    d="M25 10H90C100.493 10 108 18.0589 108 28V99C108 112.807 99.0457 120 86 120H29C17.402 120 10 112.529 10 102C10 94.8203 14.3014 90.1742 20 89L17 29C16.3922 17.7959 19.335 10 25 10Z"
+    fill="#606DA1"
+  />
+  <path
+    d="M30 27H89C94.5228 27 98 30.4772 98 36V97C98 104.18 93.1797 109 86 109H33C27.2308 109 24 105.309 24 99L22 36C21.735 30.4343 24.4437 27 30 27Z"
+    fill="#FFFAF7"
+  />
+
+  <!-- Two restrained curl cues distinguish the manuscript from a generic document. -->
+  <path
+    d="M21.394 10.605C26.172 10.379 29.135 15.655 28.557 22.916C28.219 27.167 26.852 31.001 25.301 31.708C23.574 32.496 22.763 29.549 22.875 25.005C23.023 18.99 21.95 14.45 21.394 10.605Z"
+    fill="#FFFAF7"
+  />
+  <ellipse cx="17.5" cy="101.5" rx="4.5" ry="9" fill="#505D8F"/>
+
+  <!-- Saved writing. -->
+  <path d="M37 48H72" stroke="#606DA1" stroke-width="5" stroke-linecap="round"/>
+  <path d="M37 65H66" stroke="#606DA1" stroke-width="5" stroke-linecap="round"/>
+  <path d="M37 82H60" stroke="#606DA1" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Quill. The cream channel doubles as the feather split and keeps the silhouette open. -->
+  <path
+    d="M116.5 11C115.764 26.705 112.98 39.344 105.266 48.846C101.616 53.343 96.786 56.736 91.07 59.39L103.112 56.999C100.364 68.195 93.717 76.466 83.454 82.425L95.659 78.77C91.834 89.191 81.899 97.623 68.499 102.675L62.676 97.721C71.865 70.842 89.11 43.281 116.5 11Z"
+    fill="#505D8F"
+  />
+  <path
+    d="M109.75 25.5C92.238 46.193 77.688 69.171 64.543 95.101"
+    stroke="#FFFAF7"
+    stroke-width="3.75"
+    stroke-linecap="round"
+  />
+
+  <!-- Coral is reserved for the live point of contact: the current stroke. -->
+  <path d="M61.45 93.2L68.8 99.05L65.5 108.2L58.2 112.7L59.3 101.25Z" fill="#FB9966"/>
 </svg>

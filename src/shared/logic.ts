@@ -47,7 +47,7 @@ const SENSITIVE_URL_TERMS = [
   "收银台"
 ];
 
-export interface FieldMeta {
+interface FieldMeta {
   type?: string;
   name?: string;
   id?: string;
@@ -100,41 +100,6 @@ export function isLikelySensitiveUrl(url: string): boolean {
   return SENSITIVE_URL_TERMS.some((term) => value.includes(term));
 }
 
-export function normalizePathname(pathname: string): string {
-  const clean = pathname.replace(/\/+$/, "") || "/";
-  return clean
-    .split("/")
-    .map((part) => (/^\d{3,}$/.test(part) || /^[a-f0-9-]{16,}$/i.test(part) ? ":id" : part))
-    .join("/");
-}
-
-export function stableHash(value: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(36);
-}
-
-export function makeFieldFingerprint(
-  context: Omit<FieldContext, "fingerprint">
-): string {
-  const parts = [
-    context.origin,
-    normalizePathname(context.pathname),
-    context.label,
-    context.ariaLabel,
-    context.placeholder,
-    context.name,
-    context.inputType,
-    context.domHint
-  ]
-    .map((part) => part.trim().toLowerCase())
-    .join("|");
-  return `field_${stableHash(parts)}`;
-}
-
 export function trimVersions(versions: DraftVersion[], maxVersions: number): DraftVersion[] {
   return [...versions].sort((a, b) => b.createdAt - a.createdAt).slice(0, maxVersions);
 }
@@ -174,7 +139,7 @@ function phrases(value: string): Set<string> {
   return set;
 }
 
-export function scoreSnippet(field: FieldContext, snippet: Snippet): Suggestion {
+function scoreSnippet(field: FieldContext, snippet: Snippet): Suggestion {
   const fieldPrimary = [field.label, field.ariaLabel, field.placeholder, field.name]
     .filter(Boolean)
     .join(" ")
@@ -191,7 +156,7 @@ export function scoreSnippet(field: FieldContext, snippet: Snippet): Suggestion 
 
   if (snippet.title.length > 1 && fieldPrimary.includes(snippet.title.toLowerCase())) {
     score += 70;
-    reasons.push("字段与片段标题相符");
+    reasons.push("输入框名称相符");
   }
   if (snippet.category && pageContext.includes(snippet.category.toLowerCase())) {
     score += 18;
