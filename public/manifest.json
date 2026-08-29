@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "文栈 SnipNest",
-  "description": "本地保护网页长文本，并将有价值的草稿沉淀为可跨网站复用的个人片段。",
+  "description": "在你授权的网站中自动保存普通输入，并把常用文字存到浏览器本地，随时插入。",
   "version": "0.2.5",
   "minimum_edge_version": "114",
   "permissions": ["storage", "sidePanel", "scripting", "alarms", "tabs"],

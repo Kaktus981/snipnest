@@ -8,7 +8,7 @@ export interface DraftGroup {
 
 export function draftFieldName(draft: Draft): string {
   const field = draft.field;
-  return field.label || field.ariaLabel || field.placeholder || field.name || "未命名长文本字段";
+  return field.label || field.ariaLabel || field.placeholder || field.name || "这个输入框";
 }
 
 export function isShortDraft(draft: Draft): boolean {

@@ -191,7 +191,7 @@ export function scoreSnippet(field: FieldContext, snippet: Snippet): Suggestion 
 
   if (snippet.title.length > 1 && fieldPrimary.includes(snippet.title.toLowerCase())) {
     score += 70;
-    reasons.push("字段与片段标题相符");
+    reasons.push("输入框名称相符");
   }
   if (snippet.category && pageContext.includes(snippet.category.toLowerCase())) {
     score += 18;

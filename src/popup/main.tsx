@@ -106,10 +106,14 @@ function Popup(): React.ReactElement {
   return (
     <div className="app-shell" style={{ width: 350, minHeight: 410 }}>
       <header className="topbar">
-        <div className="brand-mark">文</div>
+        <div className="brand-mark" aria-label="文栈 SnipNest" role="img">
+          <span className="brand-mark-rail rail-one" />
+          <span className="brand-mark-rail rail-two" />
+          <span className="brand-mark-knot" />
+        </div>
         <div className="brand-copy">
-          <h1 className="brand-title">文栈 SnipNest</h1>
-          <div className="brand-subtitle">本地写作保护</div>
+          <h1 className="brand-title">文栈 <span>SnipNest</span></h1>
+          <div className="brand-subtitle">在输入时自动保存一份本地备份</div>
         </div>
       </header>
       <main className="content">
@@ -118,8 +122,8 @@ function Popup(): React.ReactElement {
           <div className="card">
             <div className="empty">
               <div className="empty-icon">◇</div>
-              <strong>当前页面无法启用保护</strong>
-              Edge 设置页、新标签页和扩展商店等内部页面不允许扩展读取。
+              <strong>这个页面不能使用文栈</strong>
+              Edge 设置页、新标签页和扩展商店等内部页面不允许扩展读取。请先打开普通网站。
             </div>
           </div>
         ) : null}
@@ -133,24 +137,34 @@ function Popup(): React.ReactElement {
                   <div className="card-description truncate">{tab.origin}</div>
                 </div>
                 <span className={`status ${risky ? "warning" : granted ? "success" : "muted"}`}>
-                  {risky ? "敏感页面" : granted ? "保护中" : "未启用"}
+                  {risky ? "此页不可用" : granted ? "已开启" : "未开启"}
                 </span>
               </div>
               <div className={`notice ${risky ? "warning" : ""}`} style={{ marginTop: 13 }}>
                 {risky
-                  ? "当前网址疑似涉及支付或安全操作。文栈会额外过滤敏感字段，建议仅在确有需要时启用。"
+                  ? "出于安全考虑，文栈不会在支付、登录或验证码页面保存输入内容。"
                   : granted
-                    ? "仅在这个网站保存符合条件的长文本，密码、验证码和支付字段不会记录。"
-                    : "文栈尚未获得这个网站的读取权限，不会访问或保存页面输入。"}
+                    ? "这个网站已开启自动保存。密码、验证码和支付字段不会记录。"
+                    : "点击下方按钮后，Edge 会询问是否允许文栈读取这个网站的输入框。授权只对这个网站生效。"}
               </div>
+              {!risky && !granted ? (
+                <div className="guide-block">
+                  <h3 className="guide-title">开启后怎么用</h3>
+                  <ol className="guide-steps">
+                    <li className="guide-step">点击网页里的输入框</li>
+                    <li className="guide-step">输入后停顿片刻</li>
+                    <li className="guide-step">需要时从文栈恢复或插入内容</li>
+                  </ol>
+                </div>
+              ) : null}
               <div className="button-row">
                 {granted ? (
                   <button className="button danger" disabled={busy} onClick={() => void disableSite()}>
-                    停止保护
+                    关闭本网站自动保存
                   </button>
                 ) : (
                   <button className="button primary" disabled={busy || risky} onClick={() => void enableSite()}>
-                    {risky ? "此页面自动禁用" : busy ? "正在启用…" : "保护并打开文栈"}
+                    {risky ? "此页面不可用" : busy ? "正在请求授权…" : "开启自动保存并打开文栈"}
                   </button>
                 )}
                 <button className="button secondary" onClick={() => void openPanel()}>
@@ -160,7 +174,7 @@ function Popup(): React.ReactElement {
             </section>
             <section className="local-disclosure">
               <span className="local-dot" aria-hidden="true" />
-              <p>草稿仅保存在当前浏览器，临时内容默认 7 天后删除。</p>
+              <p>自动保存内容只保存在当前浏览器，默认 7 天后删除。</p>
             </section>
           </>
         ) : null}
